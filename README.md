@@ -1,5 +1,10 @@
 # ESP32-C6 Zigbee DHT22 Sensor (ZHA)
+![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v6.x-blue)
+![Zigbee](https://img.shields.io/badge/Zigbee-IEEE%20802.15.4-orange)
+![Home%20Assistant](https://img.shields.io/badge/Home%20Assistant-ZHA-green)
+![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
+# ESP32-C6 Zigbee DHT22 Sensor (ZHA)
 ## Overview
 
 This project builds a DIY Zigbee temperature & humidity sensor based on:
