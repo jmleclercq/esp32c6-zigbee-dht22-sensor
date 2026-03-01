@@ -4,7 +4,6 @@
 ![Home%20Assistant](https://img.shields.io/badge/Home%20Assistant-ZHA-green)
 ![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-# ESP32-C6 Zigbee DHT22 Sensor (ZHA)
 ## Overview
 
 This project builds a DIY Zigbee temperature & humidity sensor based on:
