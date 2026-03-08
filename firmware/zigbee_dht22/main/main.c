@@ -1,41 +1,32 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-#include "driver/gpio.h"
-#include "dht22.h"
+#include "esp_err.h"
+#include "sht31.h"
 
-static const char *TAG = "zigbee_dht22";
-
-/* Back to GPIO4 */
-#define DHT_GPIO GPIO_NUM_4
+static const char *TAG = "sht31_test";
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "Boot OK. DHT22 on GPIO4. Debug mode.");
+    ESP_LOGI(TAG, "Starting SHT31 test");
 
-    /* Configure GPIO4 as input with pull-up to read idle level */
-    gpio_config_t io = {
-        .pin_bit_mask = (1ULL << DHT_GPIO),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&io);
+    if (sht31_init() != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize SHT31");
+        while (1) {
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+    }
 
     while (1) {
+        float temperature = 0.0f;
+        float humidity = 0.0f;
 
-        int idle = gpio_get_level(DHT_GPIO);
-        ESP_LOGI(TAG, "Idle level on GPIO4 = %d (expected 1)", idle);
-
-        dht22_reading_t r;
-        bool ok = dht22_read(DHT_GPIO, &r);
-
-        if (ok) {
-            ESP_LOGI(TAG, "DHT OK -> Temp: %.1f C | Hum: %.1f %%RH",
-                     r.temperature_c, r.humidity_rh);
+        esp_err_t err = sht31_read(&temperature, &humidity);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "Temperature: %.2f C", temperature);
+            ESP_LOGI(TAG, "Humidity: %.2f %%", humidity);
         } else {
-            ESP_LOGW(TAG, "DHT read FAILED");
+            ESP_LOGE(TAG, "Failed to read SHT31: %s", esp_err_to_name(err));
         }
 
         vTaskDelay(pdMS_TO_TICKS(5000));

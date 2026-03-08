@@ -35,11 +35,11 @@ bool dht22_read(gpio_num_t gpio, dht22_reading_t *out)
     };
     gpio_config(&io);
 
-    // More tolerant start signal
+    // Start signal
     gpio_set_level(gpio, 0);
-    vTaskDelay(pdMS_TO_TICKS(20));   // 20ms LOW
+    vTaskDelay(pdMS_TO_TICKS(5));   // 5 ms LOW
     gpio_set_level(gpio, 1);
-    delay_us(200);                   // wait a bit before switching to input
+    delay_us(80);
 
     io.mode = GPIO_MODE_INPUT;
     io.pull_up_en = GPIO_PULLUP_ENABLE;
@@ -50,17 +50,22 @@ bool dht22_read(gpio_num_t gpio, dht22_reading_t *out)
 
     portENTER_CRITICAL(&dht_mux);
 
-    // Step 1: wait for sensor initial LOW
-    if (wait_level(gpio, 0, 2000) < 0) { fail_step = 1; goto fail; }
-    if (wait_level(gpio, 1, 2000) < 0) { fail_step = 2; goto fail; }
-    if (wait_level(gpio, 0, 2000) < 0) { fail_step = 3; goto fail; }
+    // Sensor response: LOW -> HIGH -> LOW
+    if (wait_level(gpio, 0, 3000) < 0) { fail_step = 1; goto fail; }
+    if (wait_level(gpio, 1, 3000) < 0) { fail_step = 2; goto fail; }
+    if (wait_level(gpio, 0, 3000) < 0) { fail_step = 3; goto fail; }
 
     for (int i = 0; i < 40; i++) {
-        if (wait_level(gpio, 1, 400) < 0) { fail_step = 10; goto fail; }
-        int high_us = wait_level(gpio, 0, 500);
+        // Wait for bit HIGH
+        if (wait_level(gpio, 1, 1000) < 0) { fail_step = 10; goto fail; }
+
+        // Measure HIGH duration
+        int high_us = wait_level(gpio, 0, 2000);
         if (high_us < 0) { fail_step = 11; goto fail; }
 
-        int bit = (high_us > 45) ? 1 : 0;
+        // More tolerant threshold
+        int bit = (high_us > 40) ? 1 : 0;
+
         data[i / 8] <<= 1;
         data[i / 8] |= (uint8_t)bit;
     }
@@ -77,6 +82,7 @@ bool dht22_read(gpio_num_t gpio, dht22_reading_t *out)
     uint16_t raw_t = (uint16_t)((data[2] << 8) | data[3]);
 
     out->humidity_rh = raw_h / 10.0f;
+
     bool neg = (raw_t & 0x8000) != 0;
     raw_t &= 0x7FFF;
     out->temperature_c = raw_t / 10.0f;
